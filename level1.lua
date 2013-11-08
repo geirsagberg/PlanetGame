@@ -24,9 +24,14 @@ local screenW, screenH, halfW = display.contentWidth, display.contentHeight, dis
 -- 
 -----------------------------------------------------------------------------------------
 
+
 -- Called when the scene's view does not exist:
 function scene:createScene( event )
 	local group = self.view
+
+
+	local perspective = require( "perspective" )
+	local camera = perspective.createView()
 
 	-- create a grey rectangle as the backdrop
 	local background = display.newRect( 0, 0, screenW, screenH )
@@ -37,14 +42,27 @@ function scene:createScene( event )
 	crate.x, crate.y = 160, -100
 	crate.rotation = 15
 
-	-- make a planet
-	local planet = display.newImage( "sprites/planet1.png", 200, 200 );
-	planet.x, planet.y = 160, 200
-	physics.addBody( planet, "static", {density=1.0, friction=0.2, bounce=0.2, radius=100 } );
-
-	
 	-- add physics to the crate
 	physics.addBody( crate, { density=1.0, friction=0.3, bounce=0.3 } )
+
+	-- make a planet
+	local planet = display.newImage( "sprites/planet1.png" );
+
+	local function onTouch(event)
+		planet.x = planet.x + 10
+
+	end
+
+	camera:setFocus(planet)
+	camera:track()
+
+	planet.x, planet.y = 160, 200
+	planet:addEventListener( "touch", onTouch )
+
+	physics.addBody( planet, "static", {density=1.0, friction=0.2, bounce=0.2, radius=94 } );
+
+
+	
 	
 	
 	
