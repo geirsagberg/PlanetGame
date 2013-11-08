@@ -11,6 +11,7 @@ local scene = storyboard.newScene()
 local physics = require "physics"
 physics.start(); physics.pause()
 
+gravityConstant = 0.1
 --------------------------------------------
 
 -- forward declarations and other locals
@@ -35,10 +36,11 @@ function onTouch(event)
 
 	if(event.phase == "ended") then
 		local bullet = display.newRect( halfW, screenH - 10, 3, 3 )
+		table.insert( bullets, bullet )
 		physics.addBody( bullet, {density=1.0, friction=0.2, bounce=0.3 } )
 		local angle = getFaceAngle(cannon, reticule)
 		local distance = getDistance(cannon, reticule)
-		local factor = 0.001 * distance
+		local factor = 0.1-- 0.001 * distance
 		local y = math.sin( angle ) * factor
 		local x = math.cos( angle ) * factor
 		bullet:applyLinearImpulse(x, y, 0, 0)
@@ -57,17 +59,28 @@ function scene:createScene( event )
 	local group = self.view
 
 	planets = {}
-	for i=1,5 do
-		local radius = math.random( 50 ) + 25
+	for i=1,4 do
+		local radius = math.random( 50 ) + 50
 		local planet = display.newImageRect( "sprites/planet"..i..".png", radius * 2, radius * 2 )
 		planet.x = math.random( screenW )
-		planet.y = screenH * (i - 1) / 5  
+		planet.y = screenH * 0.7  * (i ) / 4  
 		local realRadius = radius * 0.66
 		planet.radius = realRadius
-		physics.addBody( planet, "static", {density=1.0, friction=0, bounce=1, radius=realRadius } )
+		local density = 1.0
+		planet.density = density
+		physics.addBody( planet, "static", {density=density, friction=0, bounce=1, radius=realRadius } )
 		group:insert( planet )
 		table.insert( planets, planet )
 	end
+
+	leftWall = display.newRect( group, -100, 0, 100, screenH )
+	topWall = display.newRect( group, 0, -100, screenW, 100 )
+	rightWall = display.newRect( group, screenW, 0, 100, screenH )
+	bottomWall = display.newRect( group, 0, screenH, screenW, 100 )
+	physics.addBody( leftWall, "static", {density=1, friction=0, bounce=1 } )
+	physics.addBody( topWall, "static", {density=1, friction=0, bounce=1 } )
+	physics.addBody( rightWall, "static", {density=1, friction=0, bounce=1 } )
+	physics.addBody( bottomWall, "static", {density=1, friction=0, bounce=1 } )
 
 	physics.setGravity( 0, 0 )
 
@@ -120,30 +133,30 @@ end
 
 
 function gameLoop(event)
+	--print("gameloop called")
 	for i,v in ipairs(planets) do
+		--print("planet"..i)
+
 		calculateForce(v)
 	end
 end
 
-gravityConstant = 10000000
 
 function calculateForce(planet)
-	print(planet.radius)
 
 	local area = math.pow(planet.radius, 2) * math.pi
 	local mass = area * planet.density
 
-	for i=1,bullets.length do
+	for i=1,#bullets do
 		local bullet = bullets[i]
 		local distance = getDistance(bullet, planet)
 		local force = mass * gravityConstant / math.pow(distance, 2)
-		local xForce = cos(force) * distance
-		local yForce = sin(force) * distance
-		bullet:applyForce( xForce, yForce, 0, 0 )
-
+		local angle = getFaceAngle(bullet, planet)
+		local xForce = math.cos(angle) * force
+		local yForce = math.sin(angle) * force
+		bullet:applyForce( xForce, yForce, bullet.x, bullet.y )
+		--print("xForce: "..xForce.." yForce: "..yForce)
 	end
-
-	local force = mass * gravityConstant / math.pow(distance, 2)
 end
 
 -----------------------------------------------------------------------------------------
