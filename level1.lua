@@ -6,12 +6,16 @@
 
 local storyboard = require( "storyboard" )
 local scene = storyboard.newScene()
+-- include Corona's "widget" library
+local widget = require "widget"
 
 -- include Corona's "physics" library
 local physics = require "physics"
 physics.start(); physics.pause()
 
-gravityConstant = 0.1
+gravityConstant = 0.2
+maxNumOfBullets = 100
+numOfBullets = 0
 --------------------------------------------
 
 -- forward declarations and other locals
@@ -58,7 +62,45 @@ function onCollision( event )
 		bullet:removeSelf( )
 		bullet = nil
 	end
+
+	local myGoal
+	if(event.object1.myName == "goal") then
+		myGoal = event.object1
+	elseif(event.object2.myName == "goal") then
+		myGoal = event.object2 
+	end
+
+	if(myGoal ~= nil) then
+		winCounter = winCounter + 255 / maxNumOfBullets
+		goal:setFillColor( 255-winCounter, 255, 255-winCounter  )
+	end
+
+	if(#bullets == 0 and numOfBullets == 0) then
+		--gameover
+		winText = display.newText( "Score: "..winCounter, halfW - 100, halfH, "Helvetica", 40 )
+		winText:setReferencePoint( display.CenterReferencePoint )
+
+		playBtn = widget.newButton{
+		label="Play again",
+		labelColor = { default={255}, over={128} },
+		defaultFile="button.png",
+		overFile="button-over.png",
+		width=154, height=40,
+		onRelease = onReplay	-- event listener function
+	}
+	playBtn:setReferencePoint( display.CenterReferencePoint )
+	playBtn.x = display.contentWidth*0.5
+	playBtn.y = display.contentHeight - 125
+	end
 end
+
+function onReplay()
+	storyboard.gotoScene("dummy")
+end
+
+winCounter = 0
+
+isFiring = false
 
 function onTouch(event)
 	reticule.x = event.x
@@ -66,18 +108,28 @@ function onTouch(event)
 	reticule.isVisible = event.phase ~= "ended"
 	cannon:face(reticule)
 
-	if(event.phase == "ended") then
+	isFiring = event.phase ~= "ended"
+end
+
+function fireBullet()
+	if numOfBullets > 0 then
 		local bullet = display.newRect( halfW, screenH - 10, 3, 3 )
 		table.insert( bullets, bullet )
 		physics.addBody( bullet, {density=1.0, friction=0.2, bounce=0.3 } )
 		local angle = getFaceAngle(cannon, reticule)
 		local distance = getDistance(cannon, reticule)
-		local factor = 0.1-- 0.001 * distance
+		local distanceFactor = 0.1
+		--local factor = 0.01 + distanceFactor * distance / screenH
+		local factor = distanceFactor
 		local y = math.sin( angle ) * factor
 		local x = math.cos( angle ) * factor
 		bullet:applyLinearImpulse(x, y, 0, 0)
 
+		print("Fired bullet with force: "..factor)
+
 		bullet.myName = "bullet"
+		numOfBullets = numOfBullets - 1
+		bulletCount.text = numOfBullets
 	end
 end
 
@@ -92,8 +144,23 @@ end
 function scene:createScene( event )
 	local group = self.view
 
+	physics = require( "physics" )
+	physics.start( )
+
+	numOfBullets = maxNumOfBullets
+	winCounter = 0
+
+	if(playBtn ~= nil) then 
+		playBtn:removeSelf()
+		playBtn = nil 
+	end
+	if(winText ~= nil) then 
+		winText:removeSelf()
+		winText = nil
+	end
+
 	planets = {}
-	for i=1,4 do
+	for i=2,4 do
 		local radius = math.random( 50 ) + 50
 		local planet = display.newImageRect( "sprites/planet"..i..".png", radius * 2, radius * 2 )
 		planet.x = math.random( screenW )
@@ -109,6 +176,11 @@ function scene:createScene( event )
 		group:insert( planet )
 		table.insert( planets, planet )
 	end
+
+	local goalRadius = 20
+	goal = display.newCircle( group, halfW, 30, goalRadius )
+	goal.myName = "goal"
+	physics.addBody( goal, "static", {density=1, friction=0, bounce=1, radius=goalRadius } )
 
 	leftWall = display.newRect( group, -100, 0, 100, screenH )
 	topWall = display.newRect( group, 0, -100, screenW, 100 )
@@ -126,6 +198,11 @@ function scene:createScene( event )
 
 	cannon = display.newRect( group, halfW, screenH - 20, 10, 20 )
 
+	if(bulletCount ~= nil) then
+		bulletCount:removeSelf( )
+		bulletCount = nil
+	end
+	bulletCount = display.newText( numOfBullets, 20, screenH - 20, "Helvetica", 16 )
 
 	function cannon:face(object)
 		local angle = getFaceAngle(cannon, object)
@@ -156,7 +233,7 @@ function scene:exitScene( event )
 	local group = self.view
 	
 	physics.stop()
-	
+	storyboard.purgeAll( )
 end
 
 -- If scene's view is removed, scene:destroyScene() will be called just prior to:
@@ -175,6 +252,10 @@ function gameLoop(event)
 		--print("planet"..i)
 
 		calculateForce(v)
+	end
+
+	if(isFiring) then
+		fireBullet()
 	end
 end
 
