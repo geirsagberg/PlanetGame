@@ -36,6 +36,12 @@ function scene:createScene( event )
 	local crate = display.newImageRect( "crate.png", 90, 90 )
 	crate.x, crate.y = 160, -100
 	crate.rotation = 15
+
+	-- make a planet
+	local planet = display.newImage( "sprites/planet1.png" );
+	planet.x, planet.y = 160, 200
+	physics.addBody( planet, static, {density=1.0, friction=0.2, bounce=0.2, radius=50 } );
+
 	
 	-- add physics to the crate
 	physics.addBody( crate, { density=1.0, friction=0.3, bounce=0.3 } )
