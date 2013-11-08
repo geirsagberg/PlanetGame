@@ -38,27 +38,20 @@ function scene:createScene( event )
 	crate.rotation = 15
 
 	-- make a planet
-	local planet = display.newImage( "sprites/planet1.png" );
+	local planet = display.newImage( "sprites/planet1.png", 200, 200 );
 	planet.x, planet.y = 160, 200
-	physics.addBody( planet, static, {density=1.0, friction=0.2, bounce=0.2, radius=50 } );
+	physics.addBody( planet, "static", {density=1.0, friction=0.2, bounce=0.2, radius=100 } );
 
 	
 	-- add physics to the crate
 	physics.addBody( crate, { density=1.0, friction=0.3, bounce=0.3 } )
 	
-	-- create a grass object and add physics (with custom shape)
-	local grass = display.newImageRect( "grass.png", screenW, 82 )
-	grass:setReferencePoint( display.BottomLeftReferencePoint )
-	grass.x, grass.y = 0, display.contentHeight
 	
-	-- define a shape that's slightly shorter than image bounds (set draw mode to "hybrid" or "debug" to see)
-	local grassShape = { -halfW,-34, halfW,-34, halfW,34, -halfW,34 }
-	physics.addBody( grass, "static", { friction=0.3, shape=grassShape } )
 	
 	-- all display objects must be inserted into group
 	group:insert( background )
-	group:insert( grass)
 	group:insert( crate )
+	group:insert(planet)
 end
 
 -- Called immediately after scene has moved onscreen:
