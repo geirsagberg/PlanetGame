@@ -27,6 +27,38 @@ local screenW, screenH, halfW, halfH = display.contentWidth, display.contentHeig
 
 bullets = {}
 
+-- table.indexOf( array, object ) returns the index
+-- of object in array. Returns 'nil' if not in array.
+table.indexOf = function( t, object )
+	local result
+	 
+	if "table" == type( t ) then
+		for i=1,#t do
+			if object == t[i] then
+				result = i
+				break
+			end
+		end
+	end
+	 
+	return result
+end
+
+function onCollision( event )
+	local bullet
+	if(event.object1.myName == "bullet") then
+		bullet = event.object1 
+	elseif(event.object2.myName == "bullet") then
+		bullet = event.object2
+	end
+
+	if(bullet ~= nil) then
+		local index = table.indexOf( bullets, bullet )
+		table.remove(bullets, index)
+		bullet:removeSelf( )
+		bullet = nil
+	end
+end
 
 function onTouch(event)
 	reticule.x = event.x
@@ -44,6 +76,8 @@ function onTouch(event)
 		local y = math.sin( angle ) * factor
 		local x = math.cos( angle ) * factor
 		bullet:applyLinearImpulse(x, y, 0, 0)
+
+		bullet.myName = "bullet"
 	end
 end
 
@@ -69,6 +103,9 @@ function scene:createScene( event )
 		local density = 1.0
 		planet.density = density
 		physics.addBody( planet, "static", {density=density, friction=0, bounce=1, radius=realRadius } )
+
+
+
 		group:insert( planet )
 		table.insert( planets, planet )
 	end
@@ -178,6 +215,8 @@ scene:addEventListener( "exitScene", scene )
 scene:addEventListener( "destroyScene", scene )
 
 Runtime:addEventListener( "enterFrame", gameLoop )
+
+Runtime:addEventListener( "collision", onCollision )
 -----------------------------------------------------------------------------------------
 
 return scene
